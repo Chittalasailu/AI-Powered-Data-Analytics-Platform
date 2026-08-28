@@ -1,0 +1,15 @@
+pyspark
+databricks-connect
+delta-spark
+pyyaml
+pandas
+scikit-learn
+joblib
+matplotlib
+seaborn
+plotly
+streamlit
+deltalake
+sqlalchemy
+pytest
+python-dotenv

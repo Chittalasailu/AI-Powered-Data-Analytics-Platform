@@ -1,0 +1,73 @@
+# Configuration for the ingestion pipeline.
+# `environment` selects which `paths.*` block is used to resolve raw/processed
+# data locations, and controls how the Spark session and dbutils are obtained
+# (local[*] session vs. the cluster-attached Databricks session).
+environment: local # local | databricks
+
+spark:
+  app_name: ecommerce-ingestion
+
+paths:
+  local:
+    raw_data_dir: data/raw
+    processed_data_dir: data/processed
+  databricks:
+    raw_data_dir: /mnt/datalake/raw
+    processed_data_dir: /mnt/datalake/processed
+
+ingestion:
+  input_filename: transactions.csv
+  output_table_name: transactions
+  output_format: delta # delta | parquet
+  write_mode: overwrite # overwrite | append
+
+cleansing:
+  input_table_name: transactions # read from processed_data_dir/<input_table_name>
+  output_table_name: transactions_cleaned
+  output_format: delta # delta | parquet
+  write_mode: overwrite # overwrite | append
+  customer_age_min: 18
+  customer_age_max: 100
+  iqr_multiplier: 1.5
+  outlier_columns: [total_amount, quantity]
+
+aggregation:
+  input_table_name: transactions_cleaned # read from processed_data_dir/<input_table_name>
+  output_format: delta # delta | parquet
+  write_mode: overwrite # overwrite | append
+  shuffle_partitions: 8 # local[*] default; on a real cluster raise to ~2-3x total executor cores
+  top_products_per_category: 10
+  output_tables:
+    daily_revenue: agg_daily_revenue
+    monthly_revenue: agg_monthly_revenue
+    customer_rfm: agg_customer_rfm
+    top_products: agg_top_products
+    payment_distribution: agg_payment_distribution
+
+sql_analytics:
+  input_table_name: transactions_cleaned # read from processed_data_dir/<input_table_name>, registered as temp view `transactions`
+  queries_file: sql/analytics_queries.sql
+  optimization_notes_file: sql/query_optimization_notes.md
+  show_rows: 20
+
+ml:
+  input_table_name: transactions_cleaned # read from processed_data_dir/<input_table_name>
+  output_format: delta # delta | parquet
+  write_mode: overwrite # overwrite | append
+  churn_window_days: 90 # a customer with no purchase in this many days (relative to the feature cutoff) is labeled churned
+  clustering_features_table: ml_clustering_features
+  churn_features_table: ml_churn_features
+  models_dir: models
+  reports_dir: reports
+  kmeans:
+    k_min: 3
+    k_max: 8
+    random_state: 42
+  random_forest:
+    n_estimators: 300
+    max_depth: 10
+    test_size: 0.2
+    random_state: 42
+
+logging:
+  level: INFO
