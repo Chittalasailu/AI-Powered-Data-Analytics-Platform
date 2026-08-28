@@ -1,0 +1,51 @@
+name: CI
+
+# Runs on every push/PR against main or master -- validates the pipeline
+# code, the ML code, and the Streamlit dashboard together, since a change
+# to any of them can break what the other two assume about shared data
+# shapes (config.yaml keys, table schemas, model feature columns).
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # PySpark needs a JVM even for a purely local SparkSession.
+      # (Unlike Windows, Ubuntu runners need no winutils.exe/HADOOP_HOME --
+      # this is a Windows-only Spark requirement, see README's setup notes.)
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax-check every entry point
+        run: |
+          python -m py_compile src/pipeline.py
+          python -m py_compile src/ingestion/ingest.py
+          python -m py_compile src/transformation/cleanse.py
+          python -m py_compile src/transformation/transform.py
+          python -m py_compile src/transformation/sql_runner.py
+          python -m py_compile src/ml/feature_engineering.py
+          python -m py_compile src/ml/train_model.py
+          python -m py_compile src/ml/evaluate.py
+          python -m py_compile dashboards/app.py
+          python -m py_compile notebooks/databricks_pipeline.py
+
+      - name: Run pytest
+        run: pytest -v

@@ -1,5 +1,16 @@
+# NOTE: databricks-connect is deliberately NOT listed here. It ships its own
+# bundled pyspark that shadows/replaces a regular pyspark install in the same
+# environment, and its SparkSession.builder refuses to create local sessions
+# at all (RuntimeError: "Only remote Spark sessions using Databricks Connect
+# are supported") -- verified directly: installing it alongside pyspark broke
+# every local script and test in this project. This project doesn't use
+# databricks-connect anywhere (notebooks/databricks_pipeline.py runs directly
+# ON a Databricks cluster, using the cluster's own ambient `spark`/`dbutils`,
+# never a remote client from a local machine) -- there's no code path that
+# needs it. If you ever do need to develop against a remote Databricks
+# cluster from a local machine, install databricks-connect in a SEPARATE
+# virtual environment from this one, per Databricks' own documented guidance.
 pyspark
-databricks-connect
 delta-spark
 pyyaml
 pandas

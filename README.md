@@ -1,5 +1,10 @@
 # AI-Powered E-Commerce Analytics Platform
 
+[![CI](https://github.com/<your-github-username>/ai-data-analytics-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-github-username>/ai-data-analytics-platform/actions/workflows/ci.yml)
+
+> Replace `<your-github-username>` above once this is pushed — see
+> [Setup](#setup) for the exact `gh` commands.
+
 An end-to-end data engineering + machine learning platform built on PySpark
 and Delta Lake: raw e-commerce transaction data flows through ingestion,
 cleansing, aggregation, SQL analytics, feature engineering, model training,
@@ -247,6 +252,14 @@ Segments, Top Products & Categories, Churn Prediction) and sidebar filters
 pytest
 ```
 
+The same command runs automatically on every push/PR via
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — GitHub Actions, on
+a plain Ubuntu runner, syntax-checks every entry point (including
+`dashboards/app.py` and the Databricks notebook) and runs the full pytest
+suite. Ubuntu runners need none of the Windows-only `HADOOP_HOME`/
+`winutils.exe` setup below, so CI is actually the most reliable place to
+confirm a change works.
+
 Config lives in `pytest.ini`; `tests/conftest.py` provides a single
 session-scoped local `SparkSession` fixture shared by every test (starting a
 SparkSession costs real wall-clock time, so it's built once, not per test).
@@ -426,6 +439,15 @@ captured physical plan, not by reasoning about what Spark's optimizer
   retained/churned split uses reserved status colors (green/red), not a
   generic categorical palette slot, since it's a good/bad outcome, not
   "series 4."
+
+### Version control wired to the dashboard, not just alongside it
+
+The dashboard isn't merely a file that happens to sit in the same repo as
+everything else — `.github/workflows/ci.yml` runs on every push/PR and
+syntax-checks `dashboards/app.py` specifically (alongside every other entry
+point) before running the test suite, so a change to the dashboard that
+doesn't even import cleanly fails CI immediately rather than being
+discovered the next time someone runs `streamlit run`.
 
 ### Everything here was actually run, not just written
 
